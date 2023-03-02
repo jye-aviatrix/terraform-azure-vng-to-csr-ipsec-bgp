@@ -164,6 +164,78 @@ resource "azurerm_network_interface" "csr_eth1" {
   enable_ip_forwarding = true
 }
 
+resource "azurerm_route_table" "public" {
+  name = "${var.csr_name}-public-rtb"
+  location            = azurerm_resource_group.csr_rg.location
+  resource_group_name = azurerm_resource_group.csr_rg.name
+  disable_bgp_route_propagation = true
+  
+  route {
+    name = "10-8"
+    address_prefix = "10.0.0.0/8"
+    next_hop_type = "VirtualAppliance"
+    next_hop_in_ip_address = azurerm_network_interface.csr_eth1.private_ip_address
+  }
+
+  route {
+    name = "172-12"
+    address_prefix = "172.16.0.0/12"
+    next_hop_type = "VirtualAppliance"
+    next_hop_in_ip_address = azurerm_network_interface.csr_eth1.private_ip_address
+  }
+
+  route {
+    name = "192-16"
+    address_prefix = "192.168.0.0/16"
+    next_hop_type = "VirtualAppliance"
+    next_hop_in_ip_address = azurerm_network_interface.csr_eth1.private_ip_address
+  }
+}
+
+resource "azurerm_route_table" "private" {
+  name = "${var.csr_name}-private-rtb"
+  location            = azurerm_resource_group.csr_rg.location
+  resource_group_name = azurerm_resource_group.csr_rg.name
+  disable_bgp_route_propagation = true
+  
+  route {
+    name = "10-8"
+    address_prefix = "10.0.0.0/8"
+    next_hop_type = "VirtualAppliance"
+    next_hop_in_ip_address = azurerm_network_interface.csr_eth1.private_ip_address
+  }
+
+  route {
+    name = "172-12"
+    address_prefix = "172.16.0.0/12"
+    next_hop_type = "VirtualAppliance"
+    next_hop_in_ip_address = azurerm_network_interface.csr_eth1.private_ip_address
+  }
+
+  route {
+    name = "192-16"
+    address_prefix = "192.168.0.0/16"
+    next_hop_type = "VirtualAppliance"
+    next_hop_in_ip_address = azurerm_network_interface.csr_eth1.private_ip_address
+  }
+
+  route {
+    name = "Default"
+    address_prefix = "0.0.0.0/0"    
+    next_hop_type = "None"
+  }
+}
+
+resource "azurerm_subnet_route_table_association" "public" {
+  subnet_id      = azurerm_subnet.csr_public.id
+  route_table_id = azurerm_route_table.public.id
+}
+
+resource "azurerm_subnet_route_table_association" "private" {
+  subnet_id      = azurerm_subnet.csr_private.id
+  route_table_id = azurerm_route_table.private.id
+}
+
 module "azure-linux-vm-public" {
   source              = "jye-aviatrix/azure-linux-vm-public/azure"
   version             = "2.0.0"
