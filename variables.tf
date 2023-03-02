@@ -12,11 +12,13 @@ variable "vng_subnet_cidr" {
 
 variable "vng_name" {
   description = "Provide VNG Name"
+  default = "vng"
 }
 
 variable "vng_pip_az_zones" {
   description = "Provide list of availability zones for VNG Public IP"
   type        = list(any)
+  default = [ 1,2,3 ]
 }
 
 variable "local_network_gateway_name" {
@@ -66,10 +68,12 @@ variable "admin_username" {
 
 variable "admin_password" {
   description = "Provide CSR admin password"
+  default = "ICqCqDaQLgf86cCw"
 }
 
 variable "ipsec_psk" {
   description = "Provide IPSec Pre-shared key"
+  default = "ICqCqDaQLgf86cCw"
 }
 
 variable "public_key_file" {
