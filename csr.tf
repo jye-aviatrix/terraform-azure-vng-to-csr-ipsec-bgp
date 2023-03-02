@@ -1,13 +1,233 @@
 resource "azurerm_resource_group" "csr_rg" {
-  name = var.csr_rg_name
+  name     = var.csr_rg_name
   location = var.csr_rg_location
 }
 
 resource "azurerm_public_ip" "csr_pip" {
-  name                = var.csr_pip_name
+  name                = "${var.csr_name}-pip"
   location            = azurerm_resource_group.csr_rg.location
   resource_group_name = azurerm_resource_group.csr_rg.name
 
   allocation_method = "Static"
-  sku = "Standard"
+  sku               = "Standard"
+}
+
+resource "azurerm_virtual_network" "csr_vnet" {
+  name                = "${var.csr_name}-vnet"
+  location            = azurerm_resource_group.csr_rg.location
+  resource_group_name = azurerm_resource_group.csr_rg.name
+
+  address_space = [var.csr_vnet_address_space]
+
+}
+
+
+
+
+resource "azurerm_subnet" "csr_public" {
+  resource_group_name  = azurerm_resource_group.csr_rg.name
+  virtual_network_name = azurerm_virtual_network.csr_vnet.name
+  name                 = "${var.csr_name}-public"
+  address_prefixes     = [var.csr_public_subnet_address_space]
+}
+
+resource "azurerm_subnet" "csr_private" {
+  resource_group_name  = azurerm_resource_group.csr_rg.name
+  virtual_network_name = azurerm_virtual_network.csr_vnet.name
+  name                 = "${var.csr_name}-private"
+  address_prefixes     = [var.csr_private_subnet_address_space]
+}
+
+
+resource "azurerm_network_security_group" "public" {
+  name                = "${var.csr_name}-nsg"
+  location            = azurerm_resource_group.csr_rg.location
+  resource_group_name = azurerm_resource_group.csr_rg.name
+
+  security_rule {
+    name                       = "SSH"
+    priority                   = 300
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "${data.http.ip.response_body}/32"
+    destination_address_prefix = "*"
+  }
+  security_rule {
+    name                       = "10-8"
+    priority                   = 310
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "10.0.0.0/8"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "172-12"
+    priority                   = 320
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "172.16.0.0/12"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "192-16"
+    priority                   = 330
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "192.168.0.0/16"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "UDP500"
+    priority                   = 340
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Udp"
+    source_port_range          = "*"
+    destination_port_range     = "500"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "UDP4500"
+    priority                   = 350
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Udp"
+    source_port_range          = "*"
+    destination_port_range     = "4500"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "CatchAll"
+    priority                   = 4096
+    direction                  = "Inbound"
+    access                     = "Deny"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+}
+
+resource "azurerm_subnet_network_security_group_association" "public" {
+  subnet_id                 = azurerm_subnet.csr_public.id
+  network_security_group_id = azurerm_network_security_group.public.id
+}
+
+resource "azurerm_network_interface" "csr_eth0" {
+  name                = "${var.csr_name}-public-nic"
+  location            = azurerm_resource_group.csr_rg.location
+  resource_group_name = azurerm_resource_group.csr_rg.name
+
+  ip_configuration {
+    name                          = "default"
+    subnet_id                     = azurerm_subnet.csr_public.id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.csr_pip.id  
+  }
+  enable_ip_forwarding = true
+  
+}
+
+resource "azurerm_network_interface" "csr_eth1" {
+  name                = "${var.csr_name}-private-nic"
+  location            = azurerm_resource_group.csr_rg.location
+  resource_group_name = azurerm_resource_group.csr_rg.name
+
+  ip_configuration {
+    name                          = "default"
+    subnet_id                     = azurerm_subnet.csr_private.id
+    private_ip_address_allocation = "Dynamic"
+
+  }
+
+  enable_ip_forwarding = true
+}
+
+module "azure-linux-vm-public" {
+  source              = "jye-aviatrix/azure-linux-vm-public/azure"
+  version             = "2.0.0"
+  region              = azurerm_resource_group.csr_rg.location
+  resource_group_name = azurerm_resource_group.csr_rg.name
+  subnet_id           = azurerm_subnet.csr_public.id
+  vm_name             = "public-vm"
+  public_key_file     = var.public_key_file
+}
+
+
+
+resource "azurerm_linux_virtual_machine" "csr" {
+  name                = var.csr_name
+  resource_group_name = azurerm_resource_group.csr_rg.name
+  location            = azurerm_resource_group.csr_rg.location
+  size                = "Standard_B2ms"
+  boot_diagnostics {    
+  }
+
+  admin_username      = var.admin_username
+  admin_password = var.admin_password
+  disable_password_authentication = false
+  
+
+  network_interface_ids = [
+    azurerm_network_interface.csr_eth0.id,
+    azurerm_network_interface.csr_eth1.id
+  ]
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "cisco"
+    offer     = "cisco-csr-1000v"
+    sku       = "17_3_3-byol"
+    version   = "latest"
+  }
+
+  plan {
+    name      = "17_3_3-byol"
+    product   = "cisco-csr-1000v"
+    publisher = "cisco"
+  }
+  custom_data = base64encode(templatefile("${path.module}/csr.config", { 
+    hostname = var.csr_name
+    Admin_Username = var.admin_username
+    Admin_Password = var.admin_password
+    VNG_GW1_Public_IP = azurerm_virtual_network_gateway.vng.bgp_settings[0].peering_addresses[0].tunnel_ip_addresses[0]
+    VNG_GW2_Public_IP = azurerm_virtual_network_gateway.vng.bgp_settings[0].peering_addresses[1].tunnel_ip_addresses[0]
+    VNG_GW1_Private_IP = azurerm_virtual_network_gateway.vng.bgp_settings[0].peering_addresses[0].default_addresses[0]
+    VNG_GW2_Private_IP = azurerm_virtual_network_gateway.vng.bgp_settings[0].peering_addresses[1].default_addresses[0]
+    CSR_ASN = var.csr_asn
+    VNG_ASN = azurerm_virtual_network_gateway.vng.bgp_settings[0].asn
+    PSK = var.ipsec_psk
+    })
+
+  )
+}
+
+
+output "csr_public_ip" {
+  value = azurerm_public_ip.csr_pip.ip_address
 }
