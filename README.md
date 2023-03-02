@@ -4,7 +4,7 @@ This module deploys an Azure VNG (Virtual Network Gateway) in existing vNet, as 
 
 
 ## Architecture
-![](20230302180102.png)
+![Architecture](https://raw.githubusercontent.com/jye-aviatrix/terraform-azure-vng-to-csr-ipsec-bgp/master/20230302180102.png)
 
 ## Validated environment
 ```
