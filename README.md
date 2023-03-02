@@ -1,6 +1,10 @@
 # terraform-azure-vng-to-csr-ipsec-bgp
 
-This module deploys an Azure VNG (Virtual Network Gateway) in existing vNet, as well as Cisco CSR in a new vNet simulate on-premise environment. A test workload will be deployed in the same vNet in the CSR vNet with RFC1918 point to CSR interface.
+- This module deploys an Azure VNG (Virtual Network Gateway) in existing vNet, as well as Cisco CSR in a new vNet simulate on-premise environment. 
+- An IPSec BGP connection will be established between Cisco CSR to Azure VNG, VNG has two instances, thus two IPSec tunnels and two BGP sessions will be established.
+- A test workload will be deployed in the same vNet in the CSR vNet with RFC1918 point to CSR interface.
+- If you deploy a VM in existing vNet, you will observe the effective route of the VM, point to both VNG instance for the prefixes advertised by Cisco CSR.
+- If you add a loopback to the CSR, you will notice the loopback address advertised to existing vNet VM effective route as well.
 
 
 ## Architecture
