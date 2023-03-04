@@ -303,3 +303,8 @@ resource "azurerm_linux_virtual_machine" "csr" {
 output "csr_public_ip" {
   value = azurerm_public_ip.csr_pip.ip_address
 }
+
+
+output "csr_vnet_public_vm" {
+  value = module.azure-linux-vm-public
+}
