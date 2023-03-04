@@ -304,7 +304,17 @@ output "csr_public_ip" {
   value = azurerm_public_ip.csr_pip.ip_address
 }
 
+output "csr_admin_username" {
+  value = var.admin_username
+}
 
+output "csr_admin_password" {
+  value = var.admin_password
+}
+
+output "csr_ssh" {
+  value = "ssh ${var.admin_username}@${azurerm_public_ip.csr_pip.ip_address} -oKexAlgorithms=+diffie-hellman-group14-sha1"
+}
 output "csr_vnet_public_vm" {
   value = module.azure-linux-vm-public
 }
