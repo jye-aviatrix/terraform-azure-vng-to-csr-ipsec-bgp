@@ -62,7 +62,7 @@ resource "azurerm_local_network_gateway" "csr" {
   resource_group_name = data.azurerm_resource_group.vng_rg.name
 
   gateway_address     = azurerm_public_ip.csr_pip.ip_address
-  address_space       = [var.csr_vnet_address_space]
+  address_space       = ["${azurerm_network_interface.csr_eth0.private_ip_address}/32"]
 
   bgp_settings {
     asn = var.csr_asn
