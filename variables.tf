@@ -1,5 +1,9 @@
 variable "vng_rg_name" {
-  description = "Provide Resource Group Name for VNG vNet"
+  description = "Provide existing Resource Group Name for VNG vNet"
+}
+
+variable "vng_vnet_region" {
+  description = "Provide region for VNG vNet region"
 }
 
 variable "vng_vnet_name" {

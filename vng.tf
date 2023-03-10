@@ -9,8 +9,8 @@ resource "azurerm_subnet" "gw_subnet" {
 # Obtain Public IP for VNG
 resource "azurerm_public_ip" "vng_pip" {
   name                = "${var.vng_name}-pip"
-  location            = data.azurerm_resource_group.vng_rg.location
-  resource_group_name = data.azurerm_resource_group.vng_rg.name
+  location            = var.vng_vnet_region
+  resource_group_name = var.vng_rg_name
 
   allocation_method = "Static"
   sku = "Standard"
@@ -20,8 +20,8 @@ resource "azurerm_public_ip" "vng_pip" {
 # Obtain HA Public IP for VNG
 resource "azurerm_public_ip" "vng_pip_ha" {
   name                = "${var.vng_name}-pip-ha"
-  location            = data.azurerm_resource_group.vng_rg.location
-  resource_group_name = data.azurerm_resource_group.vng_rg.name
+  location            = var.vng_vnet_region
+  resource_group_name = var.vng_rg_name
 
   allocation_method = "Static"
   sku = "Standard"
@@ -31,8 +31,8 @@ resource "azurerm_public_ip" "vng_pip_ha" {
 # Create VNG
 resource "azurerm_virtual_network_gateway" "vng" {
   name = var.vng_name
-  location            = data.azurerm_resource_group.vng_rg.location
-  resource_group_name = data.azurerm_resource_group.vng_rg.name
+  location            = var.vng_vnet_region
+  resource_group_name = var.vng_rg_name
 
   type = "Vpn"
   vpn_type = "RouteBased"
@@ -58,8 +58,8 @@ resource "azurerm_virtual_network_gateway" "vng" {
 
 resource "azurerm_local_network_gateway" "csr" {
   name                = "CSR"
-  location            = data.azurerm_resource_group.vng_rg.location
-  resource_group_name = data.azurerm_resource_group.vng_rg.name
+  location            = var.vng_vnet_region
+  resource_group_name = var.vng_rg_name
 
   gateway_address     = azurerm_public_ip.csr_pip.ip_address
   address_space       = ["${azurerm_network_interface.csr_eth0.private_ip_address}/32"]
@@ -74,8 +74,8 @@ resource "azurerm_local_network_gateway" "csr" {
 
 resource "azurerm_virtual_network_gateway_connection" "to_csr" {
   name                = "to-csr"
-  location            = data.azurerm_resource_group.vng_rg.location
-  resource_group_name = data.azurerm_resource_group.vng_rg.name
+  location            = var.vng_vnet_region
+  resource_group_name = var.vng_rg_name
 
   type                       = "IPsec"
   virtual_network_gateway_id = azurerm_virtual_network_gateway.vng.id
